@@ -39,10 +39,8 @@ public class SunsetFragment extends Fragment {
     private long SUNSET_TIME = 3000;
     private long NIGHTSKY_TIME = 1500;
 
-    private ObjectAnimator mSunHeightAnimator;
-    private ObjectAnimator mSunReflectHeightAnimator;
-    private ObjectAnimator mSunsetSkyAnimator;
-    private ObjectAnimator mNightSkyAnimator;
+    private Scene mSunMovingScene = new Scene();
+    private Scene mNightSkyScene = new Scene();
 
     private String mAnimationState = STATE_UNSET;
 
@@ -130,33 +128,37 @@ public class SunsetFragment extends Fragment {
         float sunYStart = mSunView.getY();
         float sunYEnd = mSkyView.getHeight() + 100; // Extra 100 to deal with pulsating
 
-        mSunHeightAnimator = ObjectAnimator
+        ObjectAnimator sunHeightAnimator = ObjectAnimator
                 .ofFloat(mSunView, "y", sunYStart, sunYEnd)
                 .setDuration(SUNSET_TIME);
-        mSunHeightAnimator.setInterpolator(new AccelerateInterpolator());
+        sunHeightAnimator.setInterpolator(new AccelerateInterpolator());
 
         float sunReflectYStart = mSunReflectView.getY();
         float sunReflectYEnd = (-mSunReflectView.getHeight()) - 100;
 
-        mSunReflectHeightAnimator = ObjectAnimator
+        ObjectAnimator sunReflectHeightAnimator = ObjectAnimator
                 .ofFloat(mSunReflectView, "y", sunReflectYStart, sunReflectYEnd)
                 .setDuration(SUNSET_TIME);
-        mSunReflectHeightAnimator.setInterpolator(new AccelerateInterpolator());
+        sunReflectHeightAnimator.setInterpolator(new AccelerateInterpolator());
 
-        mSunsetSkyAnimator = ObjectAnimator
+        ObjectAnimator sunsetSkyAnimator = ObjectAnimator
                 .ofInt(mSkyView, "backgroundColor", mBlueSkyColor, mSunsetSkyColor)
                 .setDuration(SUNSET_TIME);
-        mSunsetSkyAnimator.setEvaluator(new ArgbEvaluator());
+        sunsetSkyAnimator.setEvaluator(new ArgbEvaluator());
 
-        mNightSkyAnimator = ObjectAnimator
+        ObjectAnimator nightSkyAnimator = ObjectAnimator
                 .ofInt(mSkyView, "backgroundColor", mSunsetSkyColor, mNightSkyColor)
                 .setDuration(NIGHTSKY_TIME);
-        mNightSkyAnimator.setEvaluator(new ArgbEvaluator());
+        nightSkyAnimator.setEvaluator(new ArgbEvaluator());
+
+        mSunMovingScene.add(sunHeightAnimator);
+        mSunMovingScene.add(sunReflectHeightAnimator);
+        mSunMovingScene.add(sunsetSkyAnimator);
+
+        mNightSkyScene.add(nightSkyAnimator);
 
         addSunsetListeners();
-        mSunHeightAnimator.start();
-        mSunReflectHeightAnimator.start();
-        mSunsetSkyAnimator.start();
+        mSunMovingScene.start();
         mAnimationState = STATE_SUNSET;
     }
 
@@ -166,22 +168,18 @@ public class SunsetFragment extends Fragment {
     private void sunriseToSunset() {
         addSunsetListeners();
         // 1) Night sky is changing. In this case reverse it and nothing else.
-        if(mNightSkyAnimator.isRunning()) {
-            mNightSkyAnimator.reverse();
+        if(mNightSkyScene.isRunning()) {
+            mNightSkyScene.reverse();
         }
         // 2) Sun was moving up, reverse it.
-        else if(mSunHeightAnimator.isRunning()) {
-            mSunHeightAnimator.reverse();
-            mSunReflectHeightAnimator.reverse();
-            mSunsetSkyAnimator.reverse();
+        else if(mSunMovingScene.isRunning()) {
+            mSunMovingScene.reverse();
         }
         // 3) Sunrise had finished, start sunset again. We need to call start and not reverse, as 
         // reverse on a finished animation would make the sun start from the bottom and go back to 
         // the top.
         else {
-            mSunHeightAnimator.start();
-            mSunReflectHeightAnimator.start();
-            mSunsetSkyAnimator.start();
+            mSunMovingScene.start();
         }
         mAnimationState = STATE_SUNSET;
     }
@@ -192,14 +190,11 @@ public class SunsetFragment extends Fragment {
     private void sunsetToSunrise() {
         addSunriseListeners();
         // 1) Sun was still setting. In this case reverse it and nothing else
-        if(mSunHeightAnimator.isRunning()) {
-            mSunHeightAnimator.reverse();
-            mSunReflectHeightAnimator.reverse();
-            mSunsetSkyAnimator.reverse();
-        }
-        // 2) Night Sky was setting or had set already, reverse it.
-        else{
-            mNightSkyAnimator.reverse();
+        if(mSunMovingScene.isRunning()){
+            mSunMovingScene.reverse();
+            // 2) Night Sky was setting or had set already, reverse it.
+        } else {
+            mNightSkyScene.reverse();
         }
         mAnimationState = STATE_SUNRISE;
     }
@@ -207,21 +202,13 @@ public class SunsetFragment extends Fragment {
      * Removes current animation listeners and adds those needed for a sunset.
      */
     void addSunsetListeners() {
-        clearAnimatorListeners();
-        mSunHeightAnimator.addListener(new Animator.AnimatorListener() {
+        mNightSkyScene.removeSceneFinishedListeners();
+        mSunMovingScene.removeSceneFinishedListeners();
+        mSunMovingScene.setSceneFinishedListener(new Scene.SceneFinishedListener() {
             @Override
-            public void onAnimationStart(Animator animator) { }
-
-            @Override
-            public void onAnimationEnd(Animator animator) {
-                mNightSkyAnimator.start();
+            public void onSceneFinished() {
+                mNightSkyScene.start();
             }
-
-            @Override
-            public void onAnimationCancel(Animator animator) { }
-
-            @Override
-            public void onAnimationRepeat(Animator animator) { }
         });
     }
 
@@ -229,34 +216,14 @@ public class SunsetFragment extends Fragment {
      * Removes current animation listeners and adds those needed for a sunrise.
      */
     private void addSunriseListeners() {
-        clearAnimatorListeners();
-        mNightSkyAnimator.addListener(new Animator.AnimatorListener() {
+        mSunMovingScene.removeSceneFinishedListeners();
+        mNightSkyScene.removeSceneFinishedListeners();
+        mNightSkyScene.setSceneFinishedListener(new Scene.SceneFinishedListener(){
             @Override
-            public void onAnimationStart(Animator animator) { }
-
-            @Override
-            public void onAnimationEnd(Animator animator) {
-                // Sun and sky should be finished animating. A reverse on a finished animation will
-                // make them start from the bottom and go to the top.
-                mSunHeightAnimator.reverse();
-                mSunReflectHeightAnimator.reverse();
-                mSunsetSkyAnimator.reverse();
+            public void onSceneFinished() {
+                mSunMovingScene.reverse();
             }
-
-            @Override
-            public void onAnimationCancel(Animator animator) { }
-
-            @Override
-            public void onAnimationRepeat(Animator animator) { }
-
         });
-    }
-
-    private void clearAnimatorListeners(){
-        mSunHeightAnimator.removeAllListeners();
-        mSunReflectHeightAnimator.removeAllListeners();
-        mSunsetSkyAnimator.removeAllListeners();
-        mNightSkyAnimator.removeAllListeners();
     }
 
 }
