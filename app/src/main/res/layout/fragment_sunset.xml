@@ -13,6 +13,38 @@
         android:layout_height="0dp"
         android:layout_weight="0.61"
         android:background="@color/blue_sky">
+
+        <ImageView
+            android:id="@+id/ray1"
+            android:layout_width="2dp"
+            android:layout_height="130dp"
+            android:layout_gravity="center"
+            android:src="@drawable/ray"/>
+
+        <ImageView
+            android:id="@+id/ray2"
+            android:layout_width="2dp"
+            android:layout_height="130dp"
+            android:rotation="45"
+            android:layout_gravity="center"
+            android:src="@drawable/ray"/>
+
+        <ImageView
+            android:id="@+id/ray3"
+            android:layout_width="2dp"
+            android:layout_height="130dp"
+            android:rotation="90"
+            android:layout_gravity="center"
+            android:src="@drawable/ray"/>
+
+        <ImageView
+            android:id="@+id/ray4"
+            android:layout_width="2dp"
+            android:layout_height="130dp"
+            android:layout_gravity="center"
+            android:rotation="135"
+            android:src="@drawable/ray"/>
+
         <ImageView
             android:id="@+id/sun"
             android:layout_width="100dp"

@@ -12,10 +12,14 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.view.ViewTreeObserver;
 import android.view.animation.AccelerateInterpolator;
+import android.view.animation.LinearInterpolator;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.fragment.app.Fragment;
+
+import java.util.ArrayList;
+import java.util.List;
 
 
 public class SunsetFragment extends Fragment {
@@ -30,7 +34,7 @@ public class SunsetFragment extends Fragment {
     private View mSunView;
     private View mSunReflectView;
     private View mSkyView;
-    private View mSeaView;
+    private List<View> mRayViews = new ArrayList<>();
 
     private int mBlueSkyColor;
     private int mSunsetSkyColor;
@@ -57,7 +61,13 @@ public class SunsetFragment extends Fragment {
         mSunView = view.findViewById(R.id.sun);
         mSunReflectView = view.findViewById(R.id.sun_reflection);
         mSkyView = view.findViewById(R.id.sky);
-        mSeaView = view.findViewById(R.id.sea);
+
+        int[] rayIds = {R.id.ray1, R.id.ray2, R.id.ray3, R.id.ray4};
+        for(int rayId : rayIds){
+            View v = view.findViewById(rayId);
+            setRotationAnimation(v);
+            mRayViews.add(v);
+        }
 
         Resources resources = getResources();
         mBlueSkyColor = resources.getColor(R.color.blue_sky);
@@ -98,6 +108,20 @@ public class SunsetFragment extends Fragment {
 
     }
 
+    private void setRotationAnimation(View view){
+
+        float rotation = view.getRotation();
+        float rotationEnd = rotation + 360;
+
+        ObjectAnimator rotateAnimator = ObjectAnimator
+                .ofFloat(view, "rotation", rotation, rotationEnd)
+                .setDuration(60000);
+        rotateAnimator.setInterpolator(new LinearInterpolator());
+        rotateAnimator.setRepeatCount(ValueAnimator.INFINITE);
+
+        rotateAnimator.start();
+    }
+
     private void setPulseAnimation(View view) {
         float scaleX = view.getScaleX();
         float scaleY = view.getScaleY();
@@ -125,36 +149,42 @@ public class SunsetFragment extends Fragment {
 
     private void startAnimation() {
 
-        float sunYStart = mSunView.getY();
-        float sunYEnd = mSkyView.getHeight() + 100; // Extra 100 to deal with pulsating
+        float sunYStart = mSunView.getTranslationY();
+        float sunYEnd = (mSkyView.getHeight() + 100) - mSunView.getTop(); // Extra 100 to deal with pulsating
 
         ObjectAnimator sunHeightAnimator = ObjectAnimator
-                .ofFloat(mSunView, "y", sunYStart, sunYEnd)
+                .ofFloat(mSunView, "translationY", sunYStart, sunYEnd)
                 .setDuration(SUNSET_TIME);
         sunHeightAnimator.setInterpolator(new AccelerateInterpolator());
+        mSunMovingScene.add(sunHeightAnimator);
 
-        float sunReflectYStart = mSunReflectView.getY();
-        float sunReflectYEnd = (-mSunReflectView.getHeight()) - 100;
+        for(View rayView: mRayViews) {
+            ObjectAnimator rayAnimator = ObjectAnimator
+                    .ofFloat(rayView, "translationY", sunYStart, sunYEnd)
+                    .setDuration(SUNSET_TIME);
+            rayAnimator.setInterpolator(new AccelerateInterpolator());
+            mSunMovingScene.add(rayAnimator);
+        }
+
+        float sunReflectYStart = mSunReflectView.getTranslationY();
+        float sunReflectYEnd =  (-mSunReflectView.getTop()) - 100 - mSunReflectView.getHeight();
 
         ObjectAnimator sunReflectHeightAnimator = ObjectAnimator
-                .ofFloat(mSunReflectView, "y", sunReflectYStart, sunReflectYEnd)
+                .ofFloat(mSunReflectView, "translationY", sunReflectYStart, sunReflectYEnd)
                 .setDuration(SUNSET_TIME);
         sunReflectHeightAnimator.setInterpolator(new AccelerateInterpolator());
+        mSunMovingScene.add(sunReflectHeightAnimator);
 
         ObjectAnimator sunsetSkyAnimator = ObjectAnimator
                 .ofInt(mSkyView, "backgroundColor", mBlueSkyColor, mSunsetSkyColor)
                 .setDuration(SUNSET_TIME);
         sunsetSkyAnimator.setEvaluator(new ArgbEvaluator());
+        mSunMovingScene.add(sunsetSkyAnimator);
 
         ObjectAnimator nightSkyAnimator = ObjectAnimator
                 .ofInt(mSkyView, "backgroundColor", mSunsetSkyColor, mNightSkyColor)
                 .setDuration(NIGHTSKY_TIME);
         nightSkyAnimator.setEvaluator(new ArgbEvaluator());
-
-        mSunMovingScene.add(sunHeightAnimator);
-        mSunMovingScene.add(sunReflectHeightAnimator);
-        mSunMovingScene.add(sunsetSkyAnimator);
-
         mNightSkyScene.add(nightSkyAnimator);
 
         addSunsetListeners();

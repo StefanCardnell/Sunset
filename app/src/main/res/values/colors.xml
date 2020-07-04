@@ -5,6 +5,7 @@
     <color name="colorAccent">#03DAC5</color>
 
     <color name="bright_sun_reflection">#fcfcb7</color>
+    <color name="ray">#ff7f50</color>
     <color name="bright_sun">#fcff66</color>
     <color name="blue_sky">#1e7ac7</color>
     <color name="sunset_sky">#ec8100</color>
