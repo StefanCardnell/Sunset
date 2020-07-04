@@ -4,7 +4,8 @@
     <color name="colorPrimaryDark">#3700B3</color>
     <color name="colorAccent">#03DAC5</color>
 
-    <color name="bright_sun">#fcfcb7</color>
+    <color name="bright_sun_reflection">#fcfcb7</color>
+    <color name="bright_sun">#fcff66</color>
     <color name="blue_sky">#1e7ac7</color>
     <color name="sunset_sky">#ec8100</color>
     <color name="night_sky">#05192e</color>
